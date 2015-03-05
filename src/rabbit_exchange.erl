@@ -83,7 +83,7 @@
 -spec(info_all/2 ::(rabbit_types:vhost(), rabbit_types:info_keys())
                    -> [rabbit_types:infos()]).
 -spec(route/2 :: (rabbit_types:exchange(), rabbit_types:delivery())
-                 -> [rabbit_amqqueue:name()]).
+                 -> {rabbit_types:delivery(), [rabbit_amqqueue:name()]}).
 -spec(delete/2 ::
         (name(),  'true') -> 'ok' | rabbit_types:error('not_found' | 'in_use');
         (name(), 'false') -> 'ok' | rabbit_types:error('not_found')).
@@ -342,18 +342,26 @@ info_all(VHostPath, Items) -> map(VHostPath, fun (X) -> info(X, Items) end).
 
 route(#exchange{name = #resource{virtual_host = VHost, name = RName} = XName,
                 decorators = Decorators} = X,
-      #delivery{message = #basic_message{routing_keys = RKs}} = Delivery) ->
-    case RName of
-        <<>> ->
-            RKsSorted = lists:usort(RKs),
-            [rabbit_channel:deliver_reply(RK, Delivery) ||
-                RK <- RKsSorted, virtual_reply_queue(RK)],
-            [rabbit_misc:r(VHost, queue, RK) || RK <- RKsSorted,
-                                                not virtual_reply_queue(RK)];
-        _ ->
-            Decs = rabbit_exchange_decorator:select(route, Decorators),
-            lists:usort(route1(Delivery, Decs, {[X], XName, []}))
-    end.
+      #delivery{message = #basic_message{routing_keys = RKs}} = Delivery0) ->
+    SelectedDecorators = rabbit_exchange_decorator:select(route, Decorators),
+    #delivery{message = #basic_message{routing_keys = RKs}} = Delivery =
+        accept(X, SelectedDecorators, Delivery0),
+    {Delivery,
+     case RName of
+         <<>> ->
+             RKsSorted = lists:usort(RKs),
+             [rabbit_channel:deliver_reply(RK, Delivery) ||
+                 RK <- RKsSorted, virtual_reply_queue(RK)],
+             [rabbit_misc:r(VHost, queue, RK) || RK <- RKsSorted,
+                                                 not virtual_reply_queue(RK)];
+         _ ->
+             lists:usort(route1(Delivery, SelectedDecorators, {[X], XName, []}))
+     end}.
+
+accept(#exchange{type = Type} = X, Decorators, Delivery) ->
+    lists:foldl(
+      fun (Decorator, DeliveryN) -> Decorator:accept(X, DeliveryN) end,
+      (type_to_module(Type)):accept(X, Delivery), Decorators).
 
 virtual_reply_queue(<<"amq.rabbitmq.reply-to.", _/binary>>) -> true;
 virtual_reply_queue(_)                                      -> false.

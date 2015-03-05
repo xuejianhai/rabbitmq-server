@@ -19,7 +19,7 @@
 
 -behaviour(rabbit_exchange_type).
 
--export([description/0, serialise_events/0, route/2]).
+-export([description/0, serialise_events/0, route/2, accept/2]).
 -export([validate/1, validate_binding/2,
          create/2, delete/3, policy_changed/2, add_binding/3,
          remove_bindings/3, assert_args_equivalence/2]).
@@ -41,6 +41,7 @@ route(#exchange{name = Name, type = Type}, _) ->
       "Cannot route message through ~s: exchange type ~s not found",
       [rabbit_misc:rs(Name), Type]).
 
+accept(_X, D) -> D.
 validate(_X) -> ok.
 validate_binding(_X, _B) -> ok.
 create(_Tx, _X) -> ok.

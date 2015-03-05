@@ -29,6 +29,12 @@
 %% serial number).
 -callback serialise_events() -> boolean().
 
+%% This allows the exchange to modify the message as it is published.
+%% This is invoked for the exchange to which we publish only;
+%% exchange-to-exchange bindings do not get involved.
+-callback accept(rabbit_types:exchange(), rabbit_types:delivery()) ->
+    rabbit_types:delivery().
+
 %% The no_return is there so that we can have an "invalid" exchange
 %% type (see rabbit_exchange_type_invalid).
 -callback route(rabbit_types:exchange(), rabbit_types:delivery()) ->

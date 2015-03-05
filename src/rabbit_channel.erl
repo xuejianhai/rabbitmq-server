@@ -790,9 +790,9 @@ handle_method(#'basic.publish'{exchange    = ExchangeNameBin,
         end,
     case rabbit_basic:message(ExchangeName, RoutingKey, DecodedContent) of
         {ok, Message} ->
-            Delivery = rabbit_basic:delivery(
-                         Mandatory, DoConfirm, Message, MsgSeqNo),
-            QNames = rabbit_exchange:route(Exchange, Delivery),
+            Delivery0 = rabbit_basic:delivery(
+                          Mandatory, DoConfirm, Message, MsgSeqNo),
+            {Delivery, QNames} = rabbit_exchange:route(Exchange, Delivery0),
             rabbit_trace:tap_in(Message, QNames, ConnName, ChannelNum,
                                 Username, TraceState),
             DQ = {Delivery#delivery{flow = flow}, QNames},

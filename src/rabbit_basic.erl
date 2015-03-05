@@ -107,8 +107,9 @@ publish(Delivery = #delivery{
         Err     -> Err
     end.
 
-publish(X, Delivery) ->
-    Qs = rabbit_amqqueue:lookup(rabbit_exchange:route(X, Delivery)),
+publish(X, Delivery0) ->
+    {Delivery, QNames} = rabbit_exchange:route(X, Delivery0),
+    Qs = rabbit_amqqueue:lookup(QNames),
     DeliveredQPids = rabbit_amqqueue:deliver(Qs, Delivery),
     {ok, DeliveredQPids}.
 

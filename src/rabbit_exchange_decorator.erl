@@ -61,6 +61,12 @@
 -callback remove_bindings(serial(), rabbit_types:exchange(),
                           [rabbit_types:binding()]) -> 'ok'.
 
+%% This allows the decorator to modify the message as it is published.
+%% This is invoked for the exchange to which we publish only;
+%% exchange-to-exchange bindings do not get involved.
+-callback accept(rabbit_types:exchange(), rabbit_types:delivery()) ->
+    rabbit_types:delivery().
+
 %% Allows additional destinations to be added to the routing decision.
 -callback route(rabbit_types:exchange(), rabbit_types:delivery()) ->
     [rabbit_amqqueue:name() | rabbit_exchange:name()].
